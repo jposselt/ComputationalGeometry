@@ -7,10 +7,11 @@ function preload() {
 }
 
 function setup() {
-    let polygons = LoadPolygons(data);
+    let polygons = loadPolygons(data);
     let e1 = polygons[0].getEvents();
     let e2 = polygons[1].getEvents();
     let events = mergeEvents(e1, e2);
+    let intersections = findPolygonIntersections(events, polygons[0], polygons[1]);
 }
 
 function draw() {

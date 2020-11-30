@@ -19,7 +19,7 @@ function WVTrafo(x_w, y_w,                                        // World coord
 }
 
 // Load polygons from a simplified obj format
-function LoadPolygons(lines) {
+function loadPolygons(lines) {
     var points = [];
     var polygons = new Array();
 
@@ -80,25 +80,232 @@ function mergeEvents(events1, events2) {
     }
 
     return merged;
+}
 
-    /* var merged = new Array();
-    var i = 0;
-    var j = 0;
-    const l1 = events1.length;
-    const l2 = events2.length;
+function findPolygonIntersections(events, poly1, poly2) {
+    var intersections = new Array();
 
-    while (i < l1 || j < l2) {
-        if (events1[i] > events2[j]) {
-            merged.push(events2[j]);
-            j++;
-        } else if (events1[i] < events2[j]) {
-            merged.push(events1[i]);
-            i++;
-        } else { // equal
-            merged.push(events1[i]);
-            i++;
-            j++;
+    if (poly1.rightMostNode.point.x < poly2.leftMostNode.point.x) {
+        return intersections;
+    }
+    if (poly2.rightMostNode.point.x < poly1.leftMostNode.point.x) {
+        return intersections;
+    }
+
+    var es = [...events]; // clone events
+    var sss = {
+        p1_cw: null,
+        p1_ccw: null,
+        p2_cw: null,
+        p2_ccw: null
+    };
+
+    while (es.length > 0) {
+        e = es.shift();
+
+        // reached left edge of 1st polygon
+        if (e == poly1.leftMostNode.point.x) {
+            // set initial edges for 1st polygon in ScanLineState
+            sss.p1_cw  = {start: poly1.leftMostNode, end: poly1.leftMostNode.nextCW};
+            sss.p1_ccw = {start: poly1.leftMostNode, end: poly1.leftMostNode.nextCCW};
+
+            // check for intersections
+            var iPoint = findLineIntersection(sss.p1_cw, sss.p2_cw);
+            if (iPoint != null) {
+                intersections.push(iPoint);
+            }
+            iPoint = findLineIntersection(sss.p1_ccw, sss.p2_cw);
+            if (iPoint != null) {
+                intersections.push(iPoint);
+            }
+            iPoint = findLineIntersection(sss.p1_cw, sss.p2_ccw);
+            if (iPoint != null) {
+                intersections.push(iPoint);
+            }
+            iPoint = findLineIntersection(sss.p1_ccw, sss.p2_ccw);
+            if (iPoint != null) {
+                intersections.push(iPoint);
+            }
+
+            // special case: polygon has edge(s) parallel to scan line
+            while (sss.p1_cw.start.point.x == sss.p1_cw.end.point.x) {
+                // update CW edge
+                sss.p1_cw.start = sss.p1_cw.end;
+                sss.p1_cw.end   = sss.p1_cw.end.nextCW;
+
+                // check intersections with new edge
+                iPoint = findLineIntersection(sss.p1_cw, sss.p2_cw);
+                if (iPoint != null) {
+                    intersections.push(iPoint);
+                }
+                iPoint = findLineIntersection(sss.p1_cw, sss.p2_ccw);
+                if (iPoint != null) {
+                    intersections.push(iPoint);
+                }
+            }
+        }
+
+        // reached left edge of 2nd polygon
+        if (e == poly2.leftMostNode.point.x) {
+            // set initial edges for 2nd polygon in ScanLineState
+            sss.p2_cw  = {start: poly2.leftMostNode, end: poly2.leftMostNode.nextCW};
+            sss.p2_ccw = {start: poly2.leftMostNode, end: poly2.leftMostNode.nextCCW};
+
+            // check for intersections
+            var iPoint = findLineIntersection(sss.p1_cw, sss.p2_cw);
+            if (iPoint != null) {
+                intersections.push(iPoint);
+            }
+            iPoint = findLineIntersection(sss.p1_ccw, sss.p2_cw);
+            if (iPoint != null) {
+                intersections.push(iPoint);
+            }
+            iPoint = findLineIntersection(sss.p1_cw, sss.p2_ccw);
+            if (iPoint != null) {
+                intersections.push(iPoint);
+            }
+            iPoint = findLineIntersection(sss.p1_ccw, sss.p2_ccw);
+            if (iPoint != null) {
+                intersections.push(iPoint);
+            }
+
+            // special case: polygon has edge(s) parallel to scan line
+            while (sss.p2_cw.start.point.x == sss.p2_cw.end.point.x) {
+                // update CW edge
+                sss.p2_cw.start = sss.p2_cw.end;
+                sss.p2_cw.end   = sss.p2_cw.end.nextCW;
+
+                // check intersections with new edge
+                var iPoint = findLineIntersection(sss.p2_cw, sss.p1_cw);
+                if (iPoint != null) {
+                    intersections.push(iPoint);
+                }
+                iPoint = findLineIntersection(sss.p2_cw, sss.p1_ccw);
+                if (iPoint != null) {
+                    intersections.push(iPoint);
+                }
+            }
+        }
+
+        // Update scan line state for 1st polygon
+        if (e == poly1.rightMostNode.point.x) { // right most extension reached
+
+            // iterate CW edge until it meets the CCW edge
+            while (sss.p1_cw.end.point.y != sss.p1_ccw.end.point.y) {
+                sss.p1_cw.start = sss.p1_cw.end;
+                sss.p1_cw.end   = sss.p1_cw.end.nextCW;
+
+                var i1 = findLineIntersection(sss.p1_cw, sss.p2_cw);
+                var i2 = findLineIntersection(sss.p1_cw, sss.p2_ccw);
+
+                if (i1 != null) {
+                    intersections.push(i1);
+                }
+                if (i2 != null) {
+                    intersections.push(i2);
+                }
+            }
+
+            // polygon done
+            sss.p1_cw = null;
+            sss.p1_ccw = null;
+
+        } else { // general case
+            // CW edge
+            if (sss.p1_cw != null && e == sss.p1_cw.end.point.x) {
+                sss.p1_cw.start = sss.p1_cw.end;
+                sss.p1_cw.end   = sss.p1_cw.end.nextCW;
+
+                var i1 = findLineIntersection(sss.p1_cw, sss.p2_cw);
+                var i2 = findLineIntersection(sss.p1_cw, sss.p2_ccw);
+
+                if (i1 != null) {
+                    intersections.push(i1);
+                }
+                if (i2 != null) {
+                    intersections.push(i2);
+                }
+            }
+
+            // CCW edge
+            if (sss.p1_ccw != null && e == sss.p1_ccw.end.point.x) {
+                sss.p1_ccw.start = sss.p1_ccw.end;
+                sss.p1_ccw.end   = sss.p1_ccw.end.nextCCW;
+
+                var i1 = findLineIntersection(sss.p1_ccw, sss.p2_cw);
+                var i2 = findLineIntersection(sss.p1_ccw, sss.p2_ccw);
+
+                if (i1 != null) {
+                    intersections.push(i1);
+                }
+                if (i2 != null) {
+                    intersections.push(i2);
+                }
+            }
+        }
+
+        // Update scan line state for 2nd polygon
+        if (e == poly2.rightMostNode.point.x) { // right most extension reached
+
+            // iterate CW edge until it meets the CCW edge
+            while (sss.p2_cw.end.point.y != sss.p2_ccw.end.point.y) {
+                sss.p2_cw.start = sss.p2_cw.end;
+                sss.p2_cw.end   = sss.p2_cw.end.nextCW;
+
+                var i1 = findLineIntersection(sss.p1_cw, sss.p2_cw);
+                var i2 = findLineIntersection(sss.p1_ccw, sss.p2_cw);
+
+                if (i1 != null) {
+                    intersections.push(i1);
+                }
+                if (i2 != null) {
+                    intersections.push(i2);
+                }
+            }
+
+            // polygon done
+            sss.p2_cw = null;
+            sss.p2_ccw = null;
+            
+        } else { // general case
+            // CW edge
+            if (sss.p2_cw != null && e == sss.p2_cw.end.point.x) {
+                sss.p2_cw.start = sss.p2_cw.end;
+                sss.p2_cw.end   = sss.p2_cw.end.nextCW;
+
+                var i1 = findLineIntersection(sss.p2_cw, sss.p1_cw);
+                var i2 = findLineIntersection(sss.p2_cw, sss.p1_ccw);
+
+                if (i1 != null) {
+                    intersections.push(i1);
+                }
+                if (i2 != null) {
+                    intersections.push(i2);
+                }
+            }
+
+            // CCW edge
+            if (sss.p2_ccw != null && e == sss.p2_ccw.end.point.x) {
+                sss.p2_ccw.start = sss.p2_ccw.end;
+                sss.p2_ccw.end   = sss.p2_ccw.end.nextCCW;
+
+                var i1 = findLineIntersection(sss.p2_ccw, sss.p1_cw);
+                var i2 = findLineIntersection(sss.p2_ccw, sss.p1_ccw);
+
+                if (i1 != null) {
+                    intersections.push(i1);
+                }
+                if (i2 != null) {
+                    intersections.push(i2);
+                }
+            }
         }
     }
-    return merged; */
+
+    return intersections;
+}
+
+function findLineIntersection(line1, line2) {
+    // TODO
+    return null;
 }
