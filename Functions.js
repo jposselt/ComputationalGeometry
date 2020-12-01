@@ -306,6 +306,45 @@ function findPolygonIntersections(events, poly1, poly2) {
 }
 
 function findLineIntersection(line1, line2) {
-    // TODO
-    return null;
+
+    if (line1 == null || line2 == null) {
+        return null;
+    }
+
+    var p1 = {x: line1.start.point.x, y: line1.start.point.y};
+    var p2 = {x: line1.end.point.x,   y: line1.end.point.y}
+    var p3 = {x: line2.start.point.x, y: line2.start.point.y}
+    var p4 = {x: line2.end.point.x,   y: line2.end.point.y}
+
+    // down part of intersection point formula
+    var d1 = (p1.x - p2.x) * (p3.y - p4.y); // (x1 - x2) * (y3 - y4)
+    var d2 = (p1.y - p2.y) * (p3.x - p4.x); // (y1 - y2) * (x3 - x4)
+    var d  = (d1) - (d2);
+
+    if(d == 0) {
+        return null;
+    }
+
+    // down part of intersection point formula
+    var u1 = (p1.x * p2.y - p1.y * p2.x); // (x1 * y2 - y1 * x2)
+    var u4 = (p3.x * p4.y - p3.y * p4.x); // (x3 * y4 - y3 * x4)
+
+    var u2x = p3.x - p4.x; // (x3 - x4)
+    var u3x = p1.x - p2.x; // (x1 - x2)
+    var u2y = p3.y - p4.y; // (y3 - y4)
+    var u3y = p1.y - p2.y; // (y1 - y2)
+
+    // intersection point formula
+    var px = (u1 * u2x - u3x * u4) / d;
+    var py = (u1 * u2y - u3y * u4) / d;
+
+    var p = { x: px, y: py };
+
+    // check if intersection point lies on line segment
+    var t = ((p1.x - p3.x) * (p3.y - p4.y) - (p1.y - p3.y)*(p3.x - p4.x)) / ((p1.x - p2.x) * (p3.y - p4.y) - (p1.y - p2.y)*(p3.x - p4.x));
+    if (t < 0 || t > 1) {
+        return null;
+    }
+
+    return p;
 }
