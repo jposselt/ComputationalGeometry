@@ -130,4 +130,24 @@ class Polygon {
 
         return events;
     }
+
+    show(width=1, col=color(0,0,0)) {
+        stroke(col);
+        strokeWeight(width);
+
+        for (let i = 0; i < this.points.length; i++) {
+
+            var p = this.points[i];
+            p = WVTrafo(p.x, p.y);
+
+            var q = this.points[(i+1) % this.points.length];
+            q = WVTrafo(q.x, q.y);
+
+            line(p.x, p.y, q.x, q.y);
+        }
+
+        this.points.forEach(p => {
+            p.show();
+        });
+    }
 }

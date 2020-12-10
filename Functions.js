@@ -83,6 +83,7 @@ function mergeEvents(events1, events2) {
 }
 
 function findPolygonIntersections(events, poly1, poly2) {
+    var steps = [];
     var intersections = new Array();
 
     if (poly1.rightMostNode.point.x < poly2.leftMostNode.point.x) {
@@ -102,12 +103,17 @@ function findPolygonIntersections(events, poly1, poly2) {
 
     while (es.length > 0) {
         e = es.shift();
+        p1_active = [];
+        p2_active = [];
 
         // reached left edge of 1st polygon
         if (e == poly1.leftMostNode.point.x) {
             // set initial edges for 1st polygon in ScanLineState
             sss.p1_cw  = {start: poly1.leftMostNode, end: poly1.leftMostNode.nextCW};
             sss.p1_ccw = {start: poly1.leftMostNode, end: poly1.leftMostNode.nextCCW};
+
+            p1_active.push(sss.p1_cw);
+            p1_active.push(sss.p1_ccw);
 
             // check for intersections
             var iPoint = findLineIntersection(sss.p1_cw, sss.p2_cw);
@@ -133,6 +139,8 @@ function findPolygonIntersections(events, poly1, poly2) {
                 sss.p1_cw.start = sss.p1_cw.end;
                 sss.p1_cw.end   = sss.p1_cw.end.nextCW;
 
+                p1_active.push(sss.p1_cw);
+
                 // check intersections with new edge
                 iPoint = findLineIntersection(sss.p1_cw, sss.p2_cw);
                 if (iPoint != null) {
@@ -150,6 +158,9 @@ function findPolygonIntersections(events, poly1, poly2) {
             // set initial edges for 2nd polygon in ScanLineState
             sss.p2_cw  = {start: poly2.leftMostNode, end: poly2.leftMostNode.nextCW};
             sss.p2_ccw = {start: poly2.leftMostNode, end: poly2.leftMostNode.nextCCW};
+
+            p2_active.push(sss.p2_cw);
+            p2_active.push(sss.p2_ccw);
 
             // check for intersections
             var iPoint = findLineIntersection(sss.p1_cw, sss.p2_cw);
@@ -175,6 +186,8 @@ function findPolygonIntersections(events, poly1, poly2) {
                 sss.p2_cw.start = sss.p2_cw.end;
                 sss.p2_cw.end   = sss.p2_cw.end.nextCW;
 
+                p2_active.push(sss.p2_cw);
+
                 // check intersections with new edge
                 var iPoint = findLineIntersection(sss.p2_cw, sss.p1_cw);
                 if (iPoint != null) {
@@ -194,6 +207,8 @@ function findPolygonIntersections(events, poly1, poly2) {
             while (sss.p1_cw.end.point.y != sss.p1_ccw.end.point.y) {
                 sss.p1_cw.start = sss.p1_cw.end;
                 sss.p1_cw.end   = sss.p1_cw.end.nextCW;
+
+                p1_active.push(sss.p1_cw);
 
                 var i1 = findLineIntersection(sss.p1_cw, sss.p2_cw);
                 var i2 = findLineIntersection(sss.p1_cw, sss.p2_ccw);
@@ -216,6 +231,8 @@ function findPolygonIntersections(events, poly1, poly2) {
                 sss.p1_cw.start = sss.p1_cw.end;
                 sss.p1_cw.end   = sss.p1_cw.end.nextCW;
 
+                p1_active.push(sss.p1_cw);
+
                 var i1 = findLineIntersection(sss.p1_cw, sss.p2_cw);
                 var i2 = findLineIntersection(sss.p1_cw, sss.p2_ccw);
 
@@ -231,6 +248,8 @@ function findPolygonIntersections(events, poly1, poly2) {
             if (sss.p1_ccw != null && e == sss.p1_ccw.end.point.x) {
                 sss.p1_ccw.start = sss.p1_ccw.end;
                 sss.p1_ccw.end   = sss.p1_ccw.end.nextCCW;
+
+                p1_active.push(sss.p1_ccw);
 
                 var i1 = findLineIntersection(sss.p1_ccw, sss.p2_cw);
                 var i2 = findLineIntersection(sss.p1_ccw, sss.p2_ccw);
@@ -251,6 +270,8 @@ function findPolygonIntersections(events, poly1, poly2) {
             while (sss.p2_cw.end.point.y != sss.p2_ccw.end.point.y) {
                 sss.p2_cw.start = sss.p2_cw.end;
                 sss.p2_cw.end   = sss.p2_cw.end.nextCW;
+
+                p2_active.push(sss.p2_cw);
 
                 var i1 = findLineIntersection(sss.p1_cw, sss.p2_cw);
                 var i2 = findLineIntersection(sss.p1_ccw, sss.p2_cw);
@@ -273,6 +294,8 @@ function findPolygonIntersections(events, poly1, poly2) {
                 sss.p2_cw.start = sss.p2_cw.end;
                 sss.p2_cw.end   = sss.p2_cw.end.nextCW;
 
+                p2_active.push(sss.p2_cw);
+
                 var i1 = findLineIntersection(sss.p2_cw, sss.p1_cw);
                 var i2 = findLineIntersection(sss.p2_cw, sss.p1_ccw);
 
@@ -289,6 +312,8 @@ function findPolygonIntersections(events, poly1, poly2) {
                 sss.p2_ccw.start = sss.p2_ccw.end;
                 sss.p2_ccw.end   = sss.p2_ccw.end.nextCCW;
 
+                p2_active.push(sss.p2_ccw);
+
                 var i1 = findLineIntersection(sss.p2_ccw, sss.p1_cw);
                 var i2 = findLineIntersection(sss.p2_ccw, sss.p1_ccw);
 
@@ -300,9 +325,18 @@ function findPolygonIntersections(events, poly1, poly2) {
                 }
             }
         }
+
+        steps.push(
+            {
+                event: e, 
+                edges_1: [...p1_active],
+                edges_2: [...p2_active], 
+                isec: [...intersections]
+            }
+        );
     }
 
-    return intersections;
+    return {result: intersections, stp: steps};
 }
 
 function findLineIntersection(line1, line2) {
@@ -347,4 +381,24 @@ function findLineIntersection(line1, line2) {
     }
 
     return p;
+}
+
+function showScanLine(event, width=1, col=color(0,0,0)) {
+    stroke(col);
+    strokeWeight(width);
+
+    var p = WVTrafo(event, -10);
+    var q = WVTrafo(event, 510);
+    line(p.x, p.y, q.x, q.y);
+}
+
+function showActiveEdges(edges, width=1, col=color(0,0,0)) {
+    stroke(col);
+    strokeWeight(width);
+
+    edges.forEach(edge => {
+        var p = WVTrafo(edge.start.point.x, edge.start.point.y);
+        var q = WVTrafo(edge.end.point.x, edge.end.point.y);
+        line(p.x, p.y, q.x, q.y);
+    });
 }
