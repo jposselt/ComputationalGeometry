@@ -91,30 +91,13 @@ class Polygon {
 
         var cw = this.leftMostNode.nextCW;
         var ccw = this.leftMostNode.nextCCW;
-        while (cw.nextCCW != ccw) { // Abort condition: CW moved past CCW
-            // Right most point reached: add event and end loop
-            if (cw == ccw) {
-                events.push(cw.point.x);
-                break;
-            }
+        var x_right = this.rightMostNode.point.x
 
-            // Don't add events if movement is paralell to y-axis. This can only
-            // occur on the left/right side of a (convex) polygon. Adding events
-            // for these cases is done somewhere else.
+        while (cw.point.x < x_right || ccw.point.x < x_right) {
+            // Don't add events if movement is paralell to y-axis.
+            // Can only occur on the left side the convex polygon.
             if (cw.point.x == this.leftMostNode.point.x) {
                 cw = cw.nextCW;
-                continue;
-            }
-            if (ccw.point.x == this.rightMostNode.point.x) {
-                ccw = ccw.nextCCW;
-                continue;
-            }
-
-            // Add only one event for two points with same x-coordinate
-            if (cw.point.x == ccw.point.x) {
-                events.push(cw.point.x);
-                cw = cw.nextCW;
-                ccw = ccw.nextCCW;
                 continue;
             }
 
@@ -127,6 +110,9 @@ class Polygon {
                 cw = cw.nextCW;
             }
         }
+
+        events.push(x_right); // right most node is always last
+
 
         return events;
     }
