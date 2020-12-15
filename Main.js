@@ -45,8 +45,8 @@ function draw() {
     var ipoints = step.isec
 
     showScanLine(ev, 1, color(255,0,0));
-    //showActiveEdges(ed1, 2, color(0,0,255));
-    //showActiveEdges(ed2, 2, color(0,255,0));
+    showActiveEdges(ed1, 2, color(0,0,255));
+    showActiveEdges(ed2, 2, color(0,255,0));
 
     ipoints.forEach(ip => {
         var p = new Point2D(ip.x, ip.y);
