@@ -143,50 +143,6 @@ class Mesh {
         }
     }
 
-    // check if first vertex is below second vertex
-    below(v1, v2) {
-        if (v1.y < v2.y) {
-            return true;
-        } else if (v1.y == v2.y) {
-            if (v1.x < v2.x) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    // check if three vertices form a right-turn
-    is_convex(v1, v2, v3) {
-        var tmp = (v3.y - v1.y) * (v2.x - v1.x) - (v3.x - v1.x) * (v2.y - v1.y);
-        if (tmp > 0) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    // determine vertex types
-    vertex_type(vertex) {
-        vprev = vertex.previous();
-        vnext = vertex.next();
-
-        if (below(vprev.p, v.p) && below(vnext.p, v.p)) {
-            if (is_convex(vnext.p, vprev.p, v.p)) {
-                return VType.START;
-            } else {
-                return VType.SPLIT;
-            }
-        } else if (below(v.p, vprev.p) && below(v.p, vnext.p)) {
-            if (is_convex(vnext.p, vprev.p, v.p)) {
-                return VType.END;
-            } else {
-                return VType.MERGE;
-            }
-        } else {
-            return VType.REGULAR;
-        }
-    }
-
     // add an edge to the mesh
     add_edge(from_vertex, to_vertex) {
         // TODO
@@ -226,8 +182,33 @@ class Mesh {
         });
 
         this.vertices.forEach(v => {
-            fill(color(0,0,0));
-            stroke(color(0,0,0));
+            let c = color(0,0,0);
+            let t = vertex_type(v);
+
+            switch (t) {
+                case VType.START:
+                    c = color(0,255,0);
+                    break;
+
+                case VType.END:
+                    c = color(255,0,0);
+                    break;
+
+                case VType.SPLIT:
+                    c = color(0,0,255);
+                    break;
+
+                case VType.MERGE:
+                    c = color(255,0,255);
+                    break;
+
+                case VType.REGULAR:
+                    c = color(255,255,0);
+                    break;
+            }
+
+            fill(c);
+            stroke(c);
             var p = WVTrafo(v.x, v.y);
             circle(p.x, p.y, 5);
         });
@@ -242,21 +223,65 @@ class Mesh {
 }
 
 // Window-Viewport Transformation
-function WVTrafo(x_w, y_w,                                        // World coordinates
+function WVTrafo(x_w, y_w,                           // World coordinates
     x_wmax=510, y_wmax=510, x_wmin=-10, y_wmin=-10,  // Window boundaries
     x_vmax=width, y_vmax=height, x_vmin=0, y_vmin=0  // Viewport boundaries
    )
 {
-// calculatng Sx and Sy
-const sx = (x_vmax - x_vmin) / (x_wmax - x_wmin);
-const sy = (y_vmax - y_vmin) / (y_wmax - y_wmin);
+    // calculatng Sx and Sy
+    const sx = (x_vmax - x_vmin) / (x_wmax - x_wmin);
+    const sy = (y_vmax - y_vmin) / (y_wmax - y_wmin);
 
-// calculating the point on viewport 
-const x_v = x_vmin + ((x_w - x_wmin) * sx);
-const y_v = y_vmin + ((y_w - y_wmin) * sy);
+    // calculating the point on viewport 
+    const x_v = x_vmin + ((x_w - x_wmin) * sx);
+    const y_v = y_vmin + ((y_w - y_wmin) * sy);
 
-return {
-x: x_v,
-y: height - y_v // invert y-coordinate
-};
+    return {
+        x: x_v,
+        y: height - y_v // invert y-coordinate
+    };
+}
+
+// check if first vertex is below second vertex
+function below(v1, v2) {
+    if (v1.y < v2.y) {
+        return true;
+    } else if (v1.y == v2.y) {
+        if (v1.x < v2.x) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// check if three vertices form a right-turn
+function is_convex(v1, v2, v3) {
+    var tmp = (v3.y - v1.y) * (v2.x - v1.x) - (v3.x - v1.x) * (v2.y - v1.y);
+    if (tmp > 0) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+// determine vertex types
+function vertex_type(vertex) {
+    let vprev = vertex.previous();
+    let vnext = vertex.next();
+
+    if (below(vprev, vertex) && below(vnext, vertex)) {
+        if (is_convex(vnext, vprev, vertex)) {
+            return VType.START;
+        } else {
+            return VType.SPLIT;
+        }
+    } else if (below(vertex, vprev) && below(vertex, vnext)) {
+        if (is_convex(vnext, vprev, vertex)) {
+            return VType.END;
+        } else {
+            return VType.MERGE;
+        }
+    } else {
+        return VType.REGULAR;
+    }
 }
