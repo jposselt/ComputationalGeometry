@@ -43,7 +43,12 @@ class Edge {
 
     // draw this edge
     draw() {
-        // TODO
+        stroke(color(0,0,0));
+        strokeWeight(2);
+
+        var p = WVTrafo(this.halfedge.origin.x, this.halfedge.origin.y);
+        var q = WVTrafo(this.halfedge.next.origin.x, this.halfedge.next.origin.y);
+        line(p.x, p.y, q.x, q.y);
     }
 }
 
@@ -53,7 +58,8 @@ class Vertex {
         this.x = x;             // x-coordinate
         this.y = y;             // y-coordinate
         this.halfedge = h;      // out-going half-edge
-        //this.type = null;       // classification for monotone partitioning
+        this.type = null;       // classification for monotone partitioning
+        this.color = null;      // color
     }
 
     previous() {
@@ -65,8 +71,52 @@ class Vertex {
     }
 
     // draw this vertex
-    draw() {
-        // TODO
+    draw(show_type = false) {
+        let c = color(0,0,0);   // default color
+
+        // use stored color if available
+        if (this.color !== null) {
+            c = color;
+        }
+
+        // type color overrides default and stored color
+        if (show_type) {
+            let t = this.type;
+
+            // calculate vertex type if not set
+            if (t === null) {
+                t = vertex_type(this);
+            }
+
+            // set color according to type
+            switch (t) {
+                case VType.START:
+                    c = color(0,255,0);
+                    break;
+
+                case VType.END:
+                    c = color(255,0,0);
+                    break;
+
+                case VType.SPLIT:
+                    c = color(0,0,255);
+                    break;
+
+                case VType.MERGE:
+                    c = color(255,0,255);
+                    break;
+
+                case VType.REGULAR:
+                    c = color(255,255,0);
+                    break;
+            }
+        }
+
+        // draw the vertex
+        fill(c);
+        stroke(c);
+        var p = WVTrafo(this.x, this.y);  // transform to device coordinates
+        circle(p.x, p.y, 5);
     }
 }
 
@@ -160,58 +210,49 @@ class Mesh {
 
     // partitions a polygon into monotone polygons
     monotone_partition() {
-        // TODO
+        // create priority queue
+        let priotity = [...this.vertices];  // shallow copy
+        priotity.sort(vertex_sort)
+
+        //determine vertex types
+        this.vertices.forEach(v => {
+            v.type = vertex_type(v);
+        });
+
+        priotity.forEach(event => {
+            switch (event.type) {
+                case VType.START:
+                    // ...
+                    break;
+
+                case VType.END:
+                    // ...
+                    break;
+
+                case VType.SPLIT:
+                    // ...
+                    break;
+
+                case VType.MERGE:
+                    // ...
+                    break;
+
+                case VType.REGULAR:
+                    // ...
+                    break;
+            }
+        });
     }
 
-    // returns the dual graph of the triangulized mesh
+    // calculates the dual graph of the triangulized mesh
     dual_graph() {
         // TODO
     }
 
     // draw the mesh
-    draw() {
-        this.edges.forEach(e => {
-            stroke(color(0,0,0));
-            strokeWeight(2);
-
-            if (e != null) {
-                var p = WVTrafo(e.halfedge.origin.x, e.halfedge.origin.y);
-                var q = WVTrafo(e.halfedge.next.origin.x, e.halfedge.next.origin.y);
-                line(p.x, p.y, q.x, q.y);
-            }
-        });
-
-        this.vertices.forEach(v => {
-            let c = color(0,0,0);
-            let t = vertex_type(v);
-
-            switch (t) {
-                case VType.START:
-                    c = color(0,255,0);
-                    break;
-
-                case VType.END:
-                    c = color(255,0,0);
-                    break;
-
-                case VType.SPLIT:
-                    c = color(0,0,255);
-                    break;
-
-                case VType.MERGE:
-                    c = color(255,0,255);
-                    break;
-
-                case VType.REGULAR:
-                    c = color(255,255,0);
-                    break;
-            }
-
-            fill(c);
-            stroke(c);
-            var p = WVTrafo(v.x, v.y);
-            circle(p.x, p.y, 5);
-        });
+    draw(show_types = false) {
+        this.edges.forEach(e => {e.draw();});
+        this.vertices.forEach(v => {v.draw(show_types);});
     }
 
     // draw the dual graph
@@ -284,4 +325,20 @@ function vertex_type(vertex) {
     } else {
         return VType.REGULAR;
     }
+}
+
+// sort function for vertices
+function vertex_sort(v1, v2) {
+    if (v1.y > v2.y) {
+        return 1;
+    } else if (v1.y < v2.y) {
+        return -1;
+    } else {
+        if (v1.x > v2.x) {
+            return 1;
+        } else if (v1.x < v2.x) {
+            return -1;
+        }
+    }
+    return 0;
 }

@@ -46,5 +46,5 @@ function setup() {
 
 function draw() {
     clear();
-    mesh.draw();
+    mesh.draw(true);
 }
