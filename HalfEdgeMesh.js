@@ -187,16 +187,111 @@ class Mesh {
             let hp = h.pair
             hp.origin = this.vertices[inext];
             hp.left = null;                     // CW boundary edges have no associated face
-            hp.edge = e;                        // same as paired edge
+            hp.edge = e;                        // same as paired half-edge
             hp.next = h.previous.pair;
             hp.previous = h.next.pair;
         }
     }
 
-    // add an edge to the mesh
-    add_edge(from_vertex, to_vertex) {
-        // TODO
+    // add a diagonal between two vertices to the mesh
+    add_diagonal(from_vertex, to_vertex) {
+        // create a new edge and two half-edges
+        let from_to_half = new HalfEdge();
+        let to_from_half = new HalfEdge();
+        let edge = new Edge(from_to_half);
+
+        // connect new half-edges to the new edge
+        from_to_half.edge = edge;
+        to_from_half.edge = edge;
+
+        // connect new half-edges to the vertices
+        from_to_half.origin = from_vertex;
+        to_from_half.origin = to_vertex;
+
+        // pair new half-edges with each other
+        from_to_half.pair = to_from_half;
+        to_from_half.pair = from_to_half
+
+        // connect new half-edges into a loop
+        // allows edge to be drawn even though it is not yet properly connected to the rest of the mesh
+        from_to_half.previous = to_from_half;
+        from_to_half.next = to_from_half;
+        to_from_half.previous = from_to_half;
+        to_from_half.next = from_to_half;
+
+        // find the half-edges on the vertices that need to be connected to the new edge
+        // these half-edges all have the same face on their left
+        let from_in, from_out, to_in, to_out;
+        let success = false;
+        // iterate over outgoing half-edges of the from_vertex
+        let he0 = from_vertex.halfedge;
+        const he0_start = from_vertex.halfedge;
+        do {
+            from_out = he0;
+            from_in  = he0.previous;
+
+            // iterate over outgoing half-edges of the to_vertex
+            let he1 = to_vertex.halfedge;
+            const he1_start = to_vertex.halfedge;
+            do {
+                to_out = he1;
+                to_in  = he1.previous;
+
+                // all boirdering same face?
+                if (from_out.left === from_in.left && to_out.left === to_in.left && from_out.left === to_out.left) {
+                    success = true;
+                    break;
+                }
+
+                he1 = he1.pair.next // get next outgoing half-edge
+            } while (he1 !== he1_start);
+
+            if (success) {
+                break;
+            }
+
+            he0 = he0.pair.next // get next outgoing half-edge
+        } while (he0 !== he0_start)
+
+        // throw error if search failed
+        if (!success) {
+            throw 'error finding neighboring half edges when inserting edge';
+        }
+
+        // link the from-side of the edge
+        from_to_half.previous = from_in;
+        from_in.next = from_to_half;
+        to_from_half.next = from_out;
+        from_out.previous = to_from_half;
+
+        // link the to-side of the edge
+        from_to_half.next = to_out;
+        to_out.previous = from_to_half;
+        to_from_half.previous = to_in;
+        to_in.next =  to_from_half;
+
+        // update the face-to-half-edge connections for the two new half-edge loops
+        to_from_half.left = from_out.left;
+        from_out.left.halfedge = to_from_half;
+
+        let new_face = new Polygon();
+        let half = from_to_half;
+        const start = from_to_half;
+        do {
+            half.left = new_face;
+            half = half.next;
+        } while (half !== start);
+        new_face.halfedge = from_to_half;
+
+        // update relevant lists
+        this.edges.push(edge);
+        this.polygons.push(new_face);
     }
+
+
+    // test() {
+    //     this.add_diagonal(this.vertices[3], this.vertices[8])
+    // }
 
     // triangulates the mesh by first partitioning its faces into monotone polygons
     triangulate() {
