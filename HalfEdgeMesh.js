@@ -62,10 +62,14 @@ class Vertex {
         this.color = null;      // color
     }
 
+    // get previous vertex
+    // may not be well defined after diagonals have been added to the mesh
     previous() {
         return this.halfedge.pair.next.next.origin;
     }
 
+    // get next vertex
+    // may not be well defined after diagonals have been added to the mesh
     next() {
         return this.halfedge.next.origin;
     }
@@ -307,17 +311,22 @@ class Mesh {
     monotone_partition() {
         // create priority queue
         let priotity = [...this.vertices];  // shallow copy
-        priotity.sort(vertex_sort)
+        priotity.sort(vertex_sort).reverse();
 
         //determine vertex types
         this.vertices.forEach(v => {
             v.type = vertex_type(v);
         });
 
+        // TODO: Init BST
+
         priotity.forEach(event => {
-            switch (event.type) {
+            let v = event;
+            let e = event.halfedge;
+
+            switch (v.type) {
                 case VType.START:
-                    // ...
+                    // TODO: Add e and helper(e) := v to BST
                     break;
 
                 case VType.END:
@@ -390,7 +399,7 @@ function below(v1, v2) {
     return false;
 }
 
-// check if three vertices form a right-turn
+// check if third point is to the left of line from first to second point
 function is_convex(v1, v2, v3) {
     var tmp = (v3.y - v1.y) * (v2.x - v1.x) - (v3.x - v1.x) * (v2.y - v1.y);
     if (tmp > 0) {
@@ -436,4 +445,25 @@ function vertex_sort(v1, v2) {
         }
     }
     return 0;
+}
+
+// compare function for edges
+function edge_compare(e1, e2) {
+    let p1 = e1.halfedge.origin;
+    let p2 = e1.halfedge.pair.origin;
+    let p3 = e2.halfedge.origin;
+    let p4 = e2.halfedge.pair.origin;
+
+    if (p3.y === p4.y) {
+        if (p1.y === p2.y) {
+            return (p1.y < p3.y);
+        }
+        return is_convex(p1, p2, p3);
+    } else if (p1.y === p2.y) {
+        return !is_convex(p3, p4, p1);
+    } else if (p1.y < p3.y) {
+        return !is_convex(p3, p4, p1);
+    } else {
+        return is_convex(p1, p2, p3);
+    }
 }
