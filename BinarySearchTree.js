@@ -178,4 +178,16 @@ class BinarySearchTree {
             }
         }
     }
+
+    // finds the minimum node in tree
+    // searching starts from given node
+    findMinNode(node)
+    {
+        // if left of a node is null
+        // then it must be minimum node
+        if(node.left === null)
+            return node;
+        else
+            return this.findMinNode(node.left);
+    }
 }

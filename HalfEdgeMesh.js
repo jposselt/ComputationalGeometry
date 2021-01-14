@@ -39,11 +39,16 @@ class HalfEdge {
 class Edge {
     constructor(halfedge) {
         this.halfedge = halfedge;   // associated half-edge
+        this.color = null;
     }
 
     // draw this edge
     draw() {
-        stroke(color(0,0,0));
+        if (this.color === null) {
+            stroke(color(0,0,0));
+        } else {
+            stroke(this.color);
+        }
         strokeWeight(2);
 
         var p = WVTrafo(this.halfedge.origin.x, this.halfedge.origin.y);
@@ -75,7 +80,7 @@ class Vertex {
     }
 
     // draw this vertex
-    draw(show_type = false) {
+    draw(show_type = false, vsize = 10) {
         let c = color(0,0,0);   // default color
 
         // use stored color if available
@@ -83,7 +88,11 @@ class Vertex {
             c = color;
         }
 
-        // type color overrides default and stored color
+        // set fill an stroke to chosen color
+        fill(c);
+        stroke(c);
+
+        // type determines vertex shape
         if (show_type) {
             let t = this.type;
 
@@ -92,35 +101,62 @@ class Vertex {
                 t = vertex_type(this);
             }
 
-            // set color according to type
+            // transform vertex position to device coordinates
+            var p = WVTrafo(this.x, this.y);
+
+            // draw shape according to type
             switch (t) {
                 case VType.START:
-                    c = color(0,255,0);
+                    circle(p.x, p.y, vsize);
                     break;
 
                 case VType.END:
-                    c = color(255,0,0);
+                    rect(p.x - 5, p.y -5, vsize, vsize);
                     break;
 
                 case VType.SPLIT:
-                    c = color(0,0,255);
+                    angleMode(DEGREES);
+                    const rs = vsize/2.;
+
+                    var ax = p.x + rs * sin(240);
+                    var ay = p.y - rs * cos(240);
+
+                    var bx = p.x + rs * sin(120);
+                    var by = p.y - rs * cos(120);
+
+                    var cx = p.x;
+                    var cy = p.y - rs;
+
+                    triangle(ax, ay, bx, by, cx, cy)
                     break;
 
                 case VType.MERGE:
-                    c = color(255,0,255);
+                    angleMode(DEGREES);
+                    const rm = vsize/2.;
+
+                    var ax = p.x + rm * sin(240);
+                    var ay = p.y + rm * cos(240);
+
+                    var bx = p.x + rm * sin(120);
+                    var by = p.y + rm * cos(120);
+
+                    var cx = p.x;
+                    var cy = p.y + rm;
+
+                    triangle(ax, ay, bx, by, cx, cy)
                     break;
 
                 case VType.REGULAR:
-                    c = color(255,255,0);
+                    const h = vsize*sqrt(2.)/2;
+                    quad(
+                        p.x + h, p.y,
+                        p.x, p.y + h,
+                        p.x - h, p.y ,
+                        p.x, p.y -h
+                        )
                     break;
             }
         }
-
-        // draw the vertex
-        fill(c);
-        stroke(c);
-        var p = WVTrafo(this.x, this.y);  // transform to device coordinates
-        circle(p.x, p.y, 5);
     }
 }
 
@@ -137,9 +173,9 @@ class Mesh {
         this.edges     = [];    // List of edges (basically a subset of the half-edges)
         this.vertices  = [];    // List of vertices
         this.polygons  = [];    // List of polygons
-        this.dual = null;       // Dual graph
-        this.isTriangulized = false;
-        this.isMonotonized = false
+        //this.dual = null;       // Dual graph
+        //this.isTriangulized = false;
+        //this.isMonotonized = false
     }
 
     // initialize the mesh from a list of 2d points forming a CCW polygon
@@ -241,7 +277,7 @@ class Mesh {
                 to_out = he1;
                 to_in  = he1.previous;
 
-                // all boirdering same face?
+                // all bordering same face?
                 if (from_out.left === from_in.left && to_out.left === to_in.left && from_out.left === to_out.left) {
                     success = true;
                     break;
@@ -318,7 +354,8 @@ class Mesh {
             v.type = vertex_type(v);
         });
 
-        // TODO: Init BST
+        // initialize BST
+        let tree = new BinarySearchTree();
 
         priotity.forEach(event => {
             let v = event;
@@ -326,15 +363,22 @@ class Mesh {
 
             switch (v.type) {
                 case VType.START:
-                    // TODO: Add e and helper(e) := v to BST
+                    tree.insert({edge: e, helper: v});
                     break;
 
                 case VType.END:
-                    // ...
+                    let v_help = tree.search(tree.root, e.previous).data.helper;
+                    if(v_help.type ===  VType.MERGE) {
+                        this.add_diagonal(v, v_help)
+                    }
+                    tree.remove({edge: e.previous});
                     break;
 
                 case VType.SPLIT:
-                    // ...
+                    let node = tree.search_lower(tree.root, e);
+                    this.add_diagonal(v, node.data.helper)
+                    node.data.helper = v;
+                    tree.insert({edge: e, helper: v});
                     break;
 
                 case VType.MERGE:
@@ -449,10 +493,10 @@ function vertex_sort(v1, v2) {
 
 // compare function for edges
 function edge_compare(e1, e2) {
-    let p1 = e1.halfedge.origin;
-    let p2 = e1.halfedge.pair.origin;
-    let p3 = e2.halfedge.origin;
-    let p4 = e2.halfedge.pair.origin;
+    let p1 = e1.origin;
+    let p2 = e1.pair.origin;
+    let p3 = e2.origin;
+    let p4 = e2.pair.origin;
 
     if (p3.y === p4.y) {
         if (p1.y === p2.y) {
