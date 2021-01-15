@@ -39,7 +39,10 @@ function setup() {
     });
 
     mesh.init(polygons[0]);
+    mesh.monotone_partition();
+    mesh.triangulate_monotone();
 
+   
     frameRate(1);
     createCanvas(500, 500);
 }

@@ -329,10 +329,6 @@ class Mesh {
         this.polygons.push(new_face);
     }
 
-    // test() {
-    //     this.add_diagonal(this.vertices[3], this.vertices[8])
-    // }
-
     // triangulates the mesh by first partitioning its faces into monotone polygons
     triangulate() {
         // TODO
@@ -340,14 +336,76 @@ class Mesh {
 
     // triangulates a monotone polygon
     triangulate_monotone() {
-        // TODO
+        let triangulationCandidates = [];
+
+        this.polygons.forEach(poly => {
+            // get the points of the current polygon as well as the top and bottom points
+            var points = [];
+            var numPoints = 0;
+            var top = null;
+            var bottom = null;
+            var topEdge = null;
+
+            var start = poly.halfedge;
+            var current = start;
+            do {
+                points.push(current.origin);
+                numPoints += 1;
+
+                if (top === null || below(top, current.origin)) {
+                    top = current.origin;
+                    topEdge = current;
+                }
+
+                if (bottom === null || below(current.origin, bottom)) {
+                    bottom = current.origin;
+                }
+
+                current = current.next;
+            } while (current !== start);
+
+            // trivial case
+            if (numPoints === 3) {
+                return; // equivalent to continue in foreach-statement
+            }
+
+            // order points in polygon top to bottom
+            var priority = [{vertex: top, type: 0}];
+            var cw = topEdge.previous;
+            var ccw = topEdge.next;
+            for (let index = 0; index < numPoints - 1; index++) {
+                const left = ccw.origin;
+                const right = cw.origin;
+
+                if (left === bottom) {
+                    priority.push({vertex: right, type: -1});
+                    cw = cw.previous;
+                } else if (right === bottom) {
+                    priority.push({vertex: left, type: 1});
+                    ccw = ccw.next;
+                } else {
+                    if (below(left, right)) {
+                        priority.push({vertex: right, type: -1});
+                        cw = cw.previous;
+                    } else {
+                        priority.push({vertex: left, type: 1});
+                        ccw = ccw.next;
+                    }
+                }
+            }
+
+            triangulationCandidates.push({points: points, priority: priority, n: numPoints});
+        });
+
+        // ...
+
     }
 
     // partitions a polygon into monotone polygons
     monotone_partition() {
         // create priority queue
-        let priotity = [...this.vertices];  // shallow copy
-        priotity.sort(vertex_sort).reverse();
+        let priority = [...this.vertices];  // shallow copy
+        priority.sort(vertex_sort).reverse();
 
         //determine vertex types
         this.vertices.forEach(v => {
@@ -357,7 +415,7 @@ class Mesh {
         // initialize BST
         let tree = new BinarySearchTree();
 
-        priotity.forEach(event => {
+        priority.forEach(event => {
             let v = event;
             let e = event.halfedge;
 
