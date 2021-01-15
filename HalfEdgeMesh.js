@@ -398,11 +398,12 @@ class Mesh {
 
                 case VType.REGULAR:
                     if(below(v, v.previous())) {
+                        var prev_edge = e.previous
                         var v_help = tree.search(tree.root, e.previous).data.helper;
                         if(v_help.type ===  VType.MERGE) {
                             this.add_diagonal(v, v_help)
                         }
-                        tree.remove({edge: e.previous});
+                        tree.remove({edge: prev_edge});
                         tree.insert({edge: e, helper: v});
                     } else {
                         var node = tree.search_lower(tree.root, e);
