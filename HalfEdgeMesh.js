@@ -336,6 +336,8 @@ class Mesh {
 
     // triangulates a monotone polygon
     triangulate_monotone() {
+
+        // get the non-trivial monotone polygons for triangulation
         let triangulationCandidates = [];
 
         this.polygons.forEach(poly => {
@@ -397,8 +399,50 @@ class Mesh {
             triangulationCandidates.push({points: points, priority: priority, n: numPoints});
         });
 
-        // ...
+        triangulationCandidates.forEach(poly => {
+            var stack = [];
+            const prio = poly.priority;
+            const n = poly.numPoints;
 
+            stack.push(prio[0]);
+            stack.push(prio[1]);
+
+            for (let i = 2; i < n; i++) {
+                var next = prio[i];
+                if (next.type !== stack[stack.length - 1].type) {
+                    // take all elements from the stack
+                    while (stack.length > 0) {
+                        var elem = stack.pop()
+                        // add diagonal to all stack elements except the last one
+                        if (stack.length > 0) {
+                            this.add_diagonal(next.vertex, elem.vertex);
+                        }
+                    }
+                    stack.push(prio[i - 1]);
+                    stack.push(prio[i]);
+                } else {
+                    // pop one element
+                    var elem = stack.pop();
+
+                    // take all elements from the stack
+                    while (stack.length > 0) {
+                        elem = stack.pop();
+                        // ...
+                    }
+                    stack.push(elem);
+                    stack.push(next);
+                }
+            }
+
+            // add diagonal from bottom vertex to all stack elements except the first and last one
+            var bottom = prio[n - 1];
+            for (let i = 0; i < stack.length; i++) {
+                var elem = stack.pop();
+                if (i !== 0 || i !== stack.length - 1) {
+                    this.add_diagonal(bottom.vertex, elem.vertex);
+                }
+            }
+        });
     }
 
     // partitions a polygon into monotone polygons
