@@ -173,9 +173,7 @@ class Mesh {
         this.edges     = [];    // List of edges (basically a subset of the half-edges)
         this.vertices  = [];    // List of vertices
         this.polygons  = [];    // List of polygons
-        //this.dual = null;       // Dual graph
-        //this.isTriangulized = false;
-        //this.isMonotonized = false
+        this.dual = null;       // Dual graph
     }
 
     // initialize the mesh from a list of 2d points forming a CCW polygon
@@ -234,11 +232,14 @@ class Mesh {
     }
 
     // add a diagonal between two vertices to the mesh
-    add_diagonal(from_vertex, to_vertex) {
+    add_diagonal(from_vertex, to_vertex, col=color(255, 200, 0)) {
         // create a new edge and two half-edges
         let from_to_half = new HalfEdge();
         let to_from_half = new HalfEdge();
         let edge = new Edge(from_to_half);
+        
+        // set edge color
+        edge.color = col;
 
         // connect new half-edges to the new edge
         from_to_half.edge = edge;
@@ -328,7 +329,6 @@ class Mesh {
         this.polygons.push(new_face);
     }
 
-
     // test() {
     //     this.add_diagonal(this.vertices[3], this.vertices[8])
     // }
@@ -367,7 +367,7 @@ class Mesh {
                     break;
 
                 case VType.END:
-                    let v_help = tree.search(tree.root, e.previous).data.helper;
+                    var v_help = tree.search(tree.root, e.previous).data.helper;
                     if(v_help.type ===  VType.MERGE) {
                         this.add_diagonal(v, v_help)
                     }
@@ -375,18 +375,43 @@ class Mesh {
                     break;
 
                 case VType.SPLIT:
-                    let node = tree.search_lower(tree.root, e);
+                    var node = tree.search_lower(tree.root, e);
                     this.add_diagonal(v, node.data.helper)
                     node.data.helper = v;
                     tree.insert({edge: e, helper: v});
                     break;
 
                 case VType.MERGE:
-                    // ...
+                    var v_help = tree.search(tree.root, e.previous).data.helper;
+                    if(v_help.type === VType.MERGE) {
+                        this.add_diagonal(v, v_help);
+                    }
+                    tree.remove({edge: e.previous});
+
+                    var node = tree.search_lower(tree.root, e);
+                    v_help = node.data.helper;
+                    if(v_help.type === VType.MERGE) {
+                        this.add_diagonal(v, v_help);
+                    }
+                    node.data.helper = v;
                     break;
 
                 case VType.REGULAR:
-                    // ...
+                    if(below(v, v.previous())) {
+                        var v_help = tree.search(tree.root, e.previous).data.helper;
+                        if(v_help.type ===  VType.MERGE) {
+                            this.add_diagonal(v, v_help)
+                        }
+                        tree.remove({edge: e.previous});
+                        tree.insert({edge: e, helper: v});
+                    } else {
+                        var node = tree.search_lower(tree.root, e);
+                        var v_help = node.data.helper;
+                        if(v_help.type === VType.MERGE) {
+                            this.add_diagonal(v, v_help);
+                        }
+                        node.data.helper = v;
+                    }
                     break;
             }
         });
