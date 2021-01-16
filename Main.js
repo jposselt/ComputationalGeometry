@@ -41,7 +41,7 @@ function setup() {
     mesh.init(polygons[0]);
     mesh.monotone_partition();
     mesh.triangulate_monotone();
-
+    mesh.generate_dual_graph();
    
     frameRate(1);
     createCanvas(500, 500);
@@ -50,4 +50,5 @@ function setup() {
 function draw() {
     clear();
     mesh.draw(true);
+    mesh.dual.draw();
 }

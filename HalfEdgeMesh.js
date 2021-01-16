@@ -9,7 +9,29 @@ class DualGraph {
 
     // draw the graph
     draw() {
-        // TODO
+        // set color
+        const c = color(125, 125, 125);
+        fill(c);
+        stroke(c);
+
+        // draw edges
+        strokeWeight(2)
+        this.edges.forEach(e => {
+            var a = this.vertices[e.a];
+            var b = this.vertices[e.b];
+            var p = WVTrafo(a.x, a.y);
+            var q = WVTrafo(b.x, b.y);
+            line(p.x, p.y, q.x, q.y);
+        });
+
+        // draw vertices
+        this.vertices.forEach(v => {
+            // transform vertex position to device coordinates
+            var p = WVTrafo(v.x, v.y);
+
+            // draw as circle
+            circle(p.x, p.y, 5);
+        });
     }
 }
 
@@ -164,6 +186,7 @@ class Vertex {
 class Polygon {
     constructor() {
         this.halfedge = null;   // a half-edge adjacent to the polygon
+        this.visited = false;
     }
 }
 
@@ -537,8 +560,74 @@ class Mesh {
     }
 
     // calculates the dual graph of the triangulized mesh
-    dual_graph() {
-        // TODO
+    generate_dual_graph() {
+        this.dual = new DualGraph();
+        if (this.polygons.length > 0) {
+            this.generate_dual_graph_node(this.polygons[0]);
+        }
+    }
+
+    generate_dual_graph_node(face) {
+        // allow null input
+        if (face === null) {
+            return null;
+        }
+
+        // skip already processed faces
+        if (face.visited === true) {
+            return null;
+        }
+
+        // mark face as visited
+        face.visited = true;
+
+        // get all vertices and neighboring faces of the current face
+        var points = [];
+        var neighbors = [];
+        var numPoints = 0;
+        var start = face.halfedge;
+        var current = start;
+        do {
+            points.push(current.origin);
+            numPoints += 1;
+
+            var neighbor = current.pair.left;
+            if (neighbor !== null) {
+                neighbors.push(neighbor);
+            }
+
+            current = current.next;
+        } while (current !== start);
+
+        if (numPoints !== 3) {
+            throw 'face not triangulated';
+        }
+
+        // calculate face center point
+        var center_x = 0;
+        var center_y = 0;
+        points.forEach(p => {
+            center_x += p.x;
+            center_y += p.y;
+        });
+        center_x /= numPoints;
+        center_y /= numPoints;
+
+        // TODO: Vertex coloring
+
+        // add center point to dual graph vertices
+        var nodeIndex = this.dual.vertices.length;
+        this.dual.vertices.push({x: center_x, y: center_y});
+
+        neighbors.forEach(f => {
+            var neighborIndex = this.generate_dual_graph_node(f);
+            if (neighborIndex !== null) {
+                this.dual.edges.push({a: nodeIndex, b: neighborIndex});
+            }
+        });
+
+        // return index of added vertex
+        return nodeIndex;
     }
 
     // draw the mesh
