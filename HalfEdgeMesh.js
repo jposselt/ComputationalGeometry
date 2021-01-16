@@ -279,7 +279,7 @@ class Mesh {
                 to_in  = he1.previous;
 
                 // all bordering same face?
-                if (from_out.left === from_in.left && to_out.left === to_in.left && from_out.left === to_out.left) {
+                if (from_out.left !== null && from_out.left === from_in.left && to_out.left === to_in.left && from_out.left === to_out.left) {
                     success = true;
                     break;
                 }
@@ -336,6 +336,8 @@ class Mesh {
 
     // triangulates a monotone polygon
     triangulate_monotone() {
+        // color for diagonals
+        const diaColor = color(125, 0, 200)
 
         // get the non-trivial monotone polygons for triangulation
         let triangulationCandidates = [];
@@ -396,9 +398,10 @@ class Mesh {
                 }
             }
 
-            triangulationCandidates.push({points: points, priority: priority, n: numPoints});
+            triangulationCandidates.push({points: points, priority: priority, numPoints: numPoints});
         });
 
+        // triangulate monotone polygons
         triangulationCandidates.forEach(poly => {
             var stack = [];
             const prio = poly.priority;
@@ -407,7 +410,7 @@ class Mesh {
             stack.push(prio[0]);
             stack.push(prio[1]);
 
-            for (let i = 2; i < n; i++) {
+            for (let i = 2; i < n - 1; i++) {
                 var next = prio[i];
                 if (next.type !== stack[stack.length - 1].type) {
                     // take all elements from the stack
@@ -415,31 +418,50 @@ class Mesh {
                         var elem = stack.pop()
                         // add diagonal to all stack elements except the last one
                         if (stack.length > 0) {
-                            this.add_diagonal(next.vertex, elem.vertex);
+                            this.add_diagonal(next.vertex, elem.vertex, diaColor);
                         }
                     }
                     stack.push(prio[i - 1]);
                     stack.push(prio[i]);
                 } else {
                     // pop one element
-                    var elem = stack.pop();
+                    var lastPopped = stack.pop();
 
-                    // take all elements from the stack
+                    // pop other vertices and add their diagonals as long as the diagonal lies in the polygon
                     while (stack.length > 0) {
-                        elem = stack.pop();
-                        // ...
+                        // get next element
+                        var elem = stack.pop();
+
+                        // check of diagonal lies inside the polygon
+                        var convex = (
+                            next.type === 1 ? 
+                            is_convex(elem.vertex, lastPopped.vertex, next.vertex) :
+                            is_convex(lastPopped.vertex, elem.vertex, next.vertex)
+                        );
+
+                        if (convex) {
+                            // diagonal in polygon: add diagonal to mesh and update the last popped vertex
+                            this.add_diagonal(next.vertex, elem.vertex, diaColor);
+                            lastPopped = elem;
+                        } else {
+                            // diagonal NOT in polygon: put element back on stack and abort loop
+                            stack.push(elem);
+                            break;
+                        }
+
                     }
-                    stack.push(elem);
+                    stack.push(lastPopped);
                     stack.push(next);
                 }
             }
 
             // add diagonal from bottom vertex to all stack elements except the first and last one
             var bottom = prio[n - 1];
-            for (let i = 0; i < stack.length; i++) {
+            var stackLength = stack.length;
+            for (let i = 0; i < stackLength; i++) {
                 var elem = stack.pop();
-                if (i !== 0 || i !== stack.length - 1) {
-                    this.add_diagonal(bottom.vertex, elem.vertex);
+                if (i !== 0 && i !== stackLength - 1) {
+                    this.add_diagonal(bottom.vertex, elem.vertex, diaColor);
                 }
             }
         });
