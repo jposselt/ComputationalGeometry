@@ -5,6 +5,9 @@ class DualGraph {
     constructor() {
         this.vertices = [];     // simplified vertices; only contains (x,y) pairs
         this.edges    = [];     // edges are pairs of indices into the vertex array
+        this.colorA   = color(255, 0, 0);
+        this.colorB   = color(0, 255, 0);
+        this.colorC   = color(0, 0, 255);
     }
 
     // draw the graph
@@ -107,7 +110,7 @@ class Vertex {
 
         // use stored color if available
         if (this.color !== null) {
-            c = color;
+            c = this.color;
         }
 
         // set fill an stroke to chosen color
@@ -613,7 +616,8 @@ class Mesh {
         center_x /= numPoints;
         center_y /= numPoints;
 
-        // TODO: Vertex coloring
+        // color the vertices
+        this.color_vertices(points)
 
         // add center point to dual graph vertices
         var nodeIndex = this.dual.vertices.length;
@@ -628,6 +632,31 @@ class Mesh {
 
         // return index of added vertex
         return nodeIndex;
+    }
+
+    color_vertices(vertices) {
+        if (vertices[0].color === null && vertices[1].color === null && vertices[2].color === null) {
+            vertices[0].color = this.dual.colorA;
+            vertices[1].color = this.dual.colorB;
+            vertices[2].color = this.dual.colorC;
+        } else {
+            var colorSet = new Set();
+            var uncoloredVertex = null;
+            vertices.forEach(v => {
+                if (v.color !== null) {
+                    colorSet.add(v.color); 
+                } else {
+                    uncoloredVertex = v;
+                }
+            });
+            if (colorSet.has(this.dual.colorA) && colorSet.has(this.dual.colorB)) {
+                uncoloredVertex.color = this.dual.colorC;
+            } else if (colorSet.has(this.dual.colorA) && colorSet.has(this.dual.colorC)) {
+                uncoloredVertex.color = this.dual.colorB;
+            } else {
+                uncoloredVertex.color = this.dual.colorA;
+            }
+        }
     }
 
     // draw the mesh
