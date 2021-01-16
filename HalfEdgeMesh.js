@@ -169,7 +169,6 @@ class Polygon {
 
 class Mesh {
     constructor() {
-        //this.halfedges = [];    // List of half-edges
         this.edges     = [];    // List of edges (basically a subset of the half-edges)
         this.vertices  = [];    // List of vertices
         this.polygons  = [];    // List of polygons
@@ -327,11 +326,6 @@ class Mesh {
         // update relevant lists
         this.edges.push(edge);
         this.polygons.push(new_face);
-    }
-
-    // triangulates the mesh by first partitioning its faces into monotone polygons
-    triangulate() {
-        // TODO
     }
 
     // triangulates a monotone polygon
